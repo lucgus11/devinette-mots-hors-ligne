@@ -1,1 +1,1 @@
-# devinette-mots-hors-ligne
+Devinnette de mots totalement fonctionnelle hors-ligne
