@@ -1,0 +1,1279 @@
+<!doctype html>
+<html lang="fr" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeu de Mots - Devinez le Mot</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+        
+        @keyframes letterPop {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .letter-animate {
+            animation: letterPop 0.3s ease-out forwards;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.8); }
+        }
+        
+        .btn-glow:hover {
+            animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 25%, #4338ca 50%, #312e81 75%, #1e1b4b 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .card-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .difficulty-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .difficulty-easy {
+            background-color: rgba(34, 197, 94, 0.2);
+            color: rgb(134, 239, 172);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+        
+        .difficulty-medium {
+            background-color: rgba(59, 130, 246, 0.2);
+            color: rgb(147, 197, 253);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+        
+        .difficulty-hard {
+            background-color: rgba(249, 115, 22, 0.2);
+            color: rgb(254, 215, 170);
+            border: 1px solid rgba(249, 115, 22, 0.5);
+        }
+        
+        .difficulty-expert {
+            background-color: rgba(168, 85, 247, 0.2);
+            color: rgb(221, 214, 254);
+            border: 1px solid rgba(168, 85, 247, 0.5);
+        }
+        
+        .difficulty-btn {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        
+        .difficulty-btn.selected {
+            transform: scale(1.05);
+            border-color: currentColor;
+        }
+    </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full gradient-bg overflow-auto">
+  <div id="app-container" class="min-h-full w-full flex flex-col items-center justify-center p-4" style="font-family: 'Poppins', sans-serif;"><!-- SECTION ACCUEIL -->
+   <section id="home-section" class="w-full max-w-4xl text-center">
+    <div class="card-glass rounded-3xl p-8 shadow-2xl">
+     <h1 id="main-title" class="text-4xl md:text-5xl font-extrabold text-white mb-2 tracking-tight">🎯 Devinez le Mot</h1>
+     <p class="text-indigo-200 mb-8 text-lg">Un jeu de lettres palpitant !</p><!-- Sélecteur de niveau -->
+     <div class="mb-10">
+      <p class="text-white font-bold mb-4">Choisissez votre niveau :</p>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6"><button onclick="selectDifficulty('facile')" id="btn-difficulty-facile" class="difficulty-btn difficulty-easy py-4 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-110"> 🌱 Facile<br><span class="text-xs opacity-75">(5-7 lettres)</span> </button> <button onclick="selectDifficulty('moyen')" id="btn-difficulty-moyen" class="difficulty-btn bg-blue-500/20 text-blue-200 py-4 px-4 rounded-xl font-semibold border-2 border-blue-500/30 transition-all duration-300 transform hover:scale-110"> 🌳 Moyen<br><span class="text-xs opacity-75">(7-9 lettres)</span> </button> <button onclick="selectDifficulty('difficile')" id="btn-difficulty-difficile" class="difficulty-btn difficulty-hard py-4 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-110"> 🔥 Difficile<br><span class="text-xs opacity-75">(9+ lettres)</span> </button> <button onclick="selectDifficulty('expert')" id="btn-difficulty-expert" class="difficulty-btn difficulty-expert py-4 px-4 rounded-xl font-semibold transition-all duration-300 transform hover:scale-110"> ⭐ Expert<br><span class="text-xs opacity-75">(10+ lettres)</span> </button>
+      </div>
+      <p id="difficulty-info" class="text-sm text-indigo-300 italic">ℹ️ Sélectionnez un niveau pour commencer</p>
+     </div><!-- Boutons Admin/Joueur -->
+     <div class="space-y-4" id="mode-buttons"><button onclick="goToAdmin()" id="btn-admin" class="btn-glow w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed disabled:opacity-50 text-white font-bold text-xl rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg" disabled> 👑 Mode Admin </button> <button onclick="goToPlayer()" id="btn-player" class="btn-glow w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed disabled:opacity-50 text-white font-bold text-xl rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg" disabled> 🎮 Mode Joueur </button>
+     </div>
+     <div class="mt-8 p-4 bg-white/5 rounded-xl">
+      <p class="text-indigo-200 text-sm"><strong class="text-white">Admin :</strong> Crée et affiche les mots<br><strong class="text-white">Joueur :</strong> Entre le code et devine !</p>
+     </div>
+    </div>
+   </section><!-- SECTION ADMIN -->
+   <section id="admin-section" class="hidden w-full max-w-2xl">
+    <div class="card-glass rounded-3xl p-6 md:p-8 shadow-2xl">
+     <div class="flex items-center justify-between mb-6"><button onclick="backToHome()" class="flex items-center gap-2 text-indigo-200 hover:text-white transition-colors"> <span class="text-2xl">←</span> <span>Retour</span> </button>
+      <div class="text-center">
+       <h2 class="text-2xl font-bold text-white">👑 Mode Admin</h2>
+       <div id="admin-difficulty-badge" class="mt-2 difficulty-badge"></div>
+      </div>
+     </div>
+     <div id="admin-setup" class="text-center">
+      <p class="text-indigo-200 mb-4">Générez un code pour démarrer une partie</p><button onclick="generateGameCode()" class="btn-glow py-3 px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"> 🎲 Générer un Code </button>
+     </div>
+     <div id="admin-game" class="hidden">
+      <div class="text-center mb-6 p-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl border border-amber-500/30">
+       <p class="text-amber-200 text-sm mb-1">Code de la partie</p>
+       <p id="game-code-display" class="text-4xl font-mono font-bold text-white tracking-widest"></p>
+       <p class="text-amber-200 text-xs mt-2">Partagez ce code avec les joueurs</p>
+      </div>
+      <div class="grid grid-cols-3 gap-3 mb-6">
+       <div class="bg-white/10 rounded-xl p-3 text-center">
+        <p class="text-indigo-200 text-xs">Niveau</p>
+        <p id="admin-level-display" class="text-lg font-bold text-white"></p>
+       </div>
+       <div class="bg-white/10 rounded-xl p-3 text-center">
+        <p class="text-indigo-200 text-xs">Manche</p>
+        <p id="round-display" class="text-2xl font-bold text-white">1/5</p>
+       </div>
+       <div class="bg-white/10 rounded-xl p-3 text-center">
+        <p class="text-indigo-200 text-xs">Score Total</p>
+        <p id="score-display" class="text-2xl font-bold text-emerald-400">0</p>
+       </div>
+      </div>
+      <div class="bg-slate-900/50 rounded-2xl p-6 mb-6">
+       <p class="text-indigo-200 text-sm mb-3 text-center">Le mot à deviner :</p>
+       <div id="word-display" class="flex flex-wrap justify-center gap-2 min-h-16">
+       </div>
+       <div class="mt-4 flex justify-center">
+        <div id="timer-bar" class="w-full max-w-xs h-2 bg-white/10 rounded-full overflow-hidden">
+         <div id="timer-progress" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-300"></div>
+        </div>
+       </div>
+      </div>
+      <div class="flex flex-wrap gap-3 justify-center"><button onclick="startWordReveal()" id="btn-start" class="py-3 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105"> ▶️ Démarrer </button> <button onclick="pauseWordReveal()" id="btn-pause" disabled class="py-3 px-6 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-all duration-300"> ⏸️ Pause </button> <button onclick="nextRound()" id="btn-next" class="py-3 px-6 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-all duration-300 transform hover:scale-105"> ➡️ Manche Suivante </button> <button onclick="resetGame()" class="py-3 px-6 bg-red-600 hover:bg-red-500 text-white font-semibold rounded-xl transition-all duration-300"> 🔄 Nouvelle Partie </button>
+      </div>
+      <div class="mt-6 p-4 bg-slate-800/50 rounded-xl"><button onclick="toggleAnswer()" class="text-indigo-300 hover:text-white text-sm transition-colors"> 👁️ Voir/Cacher la réponse </button>
+       <p id="answer-reveal" class="hidden mt-2 text-xl font-bold text-emerald-400"></p>
+      </div>
+     </div>
+    </div>
+   </section><!-- SECTION JOUEUR -->
+   <section id="player-section" class="hidden w-full max-w-lg">
+    <div class="card-glass rounded-3xl p-6 md:p-8 shadow-2xl">
+     <div class="flex items-center justify-between mb-6"><button onclick="backToHome()" class="flex items-center gap-2 text-indigo-200 hover:text-white transition-colors"> <span class="text-2xl">←</span> <span>Retour</span> </button>
+      <div class="text-center">
+       <h2 class="text-2xl font-bold text-white">🎮 Mode Joueur</h2>
+       <div id="player-difficulty-badge" class="mt-2 difficulty-badge"></div>
+      </div>
+     </div>
+     <div id="player-join" class="text-center">
+      <p class="text-indigo-200 mb-4">Entrez le code de la partie</p>
+      <div class="mb-4"><label for="code-input" class="sr-only">Code de partie</label> <input type="text" id="code-input" class="w-full py-4 px-6 text-2xl font-mono text-center bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-white/40 focus:border-indigo-400 focus:outline-none uppercase tracking-widest" placeholder="CODE" maxlength="6" onkeyup="this.value = this.value.toUpperCase()">
+      </div>
+      <p id="code-error" class="hidden text-red-400 mb-4">❌ Code invalide ou niveau incompatible</p><button onclick="joinGame()" class="btn-glow w-full py-3 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"> 🚀 Rejoindre </button>
+     </div>
+     <div id="player-game" class="hidden">
+      <div class="grid grid-cols-3 gap-3 mb-6">
+       <div class="bg-white/10 rounded-xl p-3 text-center">
+        <p class="text-indigo-200 text-xs">Niveau</p>
+        <p id="player-level-display" class="text-sm font-bold text-white"></p>
+       </div>
+       <div class="bg-white/10 rounded-xl p-3 text-center">
+        <p class="text-indigo-200 text-xs">Manche</p>
+        <p id="player-round" class="text-lg font-bold text-white">1/5</p>
+       </div>
+       <div class="bg-white/10 rounded-xl p-3 text-center">
+        <p class="text-indigo-200 text-xs">Votre Score</p>
+        <p id="player-score" class="text-lg font-bold text-emerald-400">0</p>
+       </div>
+      </div>
+      <div class="bg-slate-900/50 rounded-2xl p-6 mb-6">
+       <p class="text-indigo-200 text-sm mb-3 text-center">Votre réponse :</p><label for="answer-input" class="sr-only">Votre réponse</label> <input type="text" id="answer-input" class="w-full py-4 px-6 text-xl text-center bg-white/10 border-2 border-white/20 rounded-xl text-white placeholder-white/40 focus:border-indigo-400 focus:outline-none" placeholder="Tapez votre réponse..." autocomplete="off"> <button onclick="submitAnswer()" class="btn-glow w-full mt-4 py-3 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-lg rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"> ✅ Valider </button>
+      </div>
+      <div id="feedback-zone" class="hidden text-center p-4 rounded-xl mb-4">
+       <p id="feedback-text" class="text-xl font-bold"></p>
+      </div>
+      <div class="bg-white/5 rounded-xl p-4">
+       <p class="text-indigo-200 text-sm mb-2">Historique :</p>
+       <div id="history-list" class="space-y-2 max-h-40 overflow-y-auto">
+       </div>
+      </div><button onclick="leaveGame()" class="w-full mt-4 py-2 px-4 bg-white/10 hover:bg-white/20 text-indigo-200 font-semibold rounded-xl transition-all duration-300"> 🚪 Quitter la partie </button>
+     </div>
+    </div>
+   </section><!-- ÉCRAN DE FIN -->
+   <section id="end-section" class="hidden w-full max-w-lg">
+    <div class="card-glass rounded-3xl p-8 shadow-2xl text-center">
+     <h2 class="text-4xl font-bold text-white mb-4">🎉 Partie Terminée !</h2>
+     <div class="bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-xl p-6 mb-6">
+      <p class="text-amber-200 text-sm mb-2">Score Final</p>
+      <p id="final-score" class="text-6xl font-bold text-white">0</p>
+      <p class="text-amber-200 text-sm mt-2">/ 500 points possibles</p>
+     </div>
+     <div id="end-message" class="text-xl text-indigo-200 mb-6"></div><button onclick="backToHome()" class="btn-glow w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xl rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg"> 🏠 Retour à l'accueil </button>
+    </div>
+   </section>
+  </div>
+  <script>
+    // Variable stockant le niveau sélectionné
+    let selectedDifficulty = null;
+    
+    // ==========================================
+    // DONNÉES DES 100 PARTIES
+    // ==========================================
+    const GAME_DATA = {
+        "FAC001": { code: "FAC001", niveau: "facile", theme: "Couleurs", rounds: [
+            { word: "A_R_R_", answer: btoa("AURORE") },
+            { word: "V_R_U_E", answer: btoa("VERDURE") },
+            { word: "T_U_N_S_L", answer: btoa("TOURNESOL") },
+            { word: "P_L_T_E", answer: btoa("PALETTE") },
+            { word: "R_I_B_W", answer: btoa("RAINBOW") }
+        ]},
+        "FAC002": { code: "FAC002", niveau: "facile", theme: "Emotions", rounds: [
+            { word: "J_I_", answer: btoa("JOIE") },
+            { word: "S_R_N_E", answer: btoa("SERENITE") },
+            { word: "E_P_I_", answer: btoa("ESPOIR") },
+            { word: "T_N_R_S_E", answer: btoa("TENDRESSE") },
+            { word: "P_S_I_N", answer: btoa("PASSION") }
+        ]},
+        "FAC003": { code: "FAC003", niveau: "facile", theme: "Fruits", rounds: [
+            { word: "F_R_I_E", answer: btoa("FRAISE") },
+            { word: "M_Y_N_E", answer: btoa("MYRTILLE") },
+            { word: "C_R_T_E", answer: btoa("CAROTTE") },
+            { word: "B_R_C_L_", answer: btoa("BROCOLI") },
+            { word: "P_M_E", answer: btoa("POMME") }
+        ]},
+        "FAC004": { code: "FAC004", niveau: "facile", theme: "Loisirs", rounds: [
+            { word: "L_C_U_E", answer: btoa("LECTURE") },
+            { word: "D_S_I_", answer: btoa("DESSIN") },
+            { word: "D_N_E", answer: btoa("DANSE") },
+            { word: "M_S_Q_E", answer: btoa("MUSIQUE") },
+            { word: "T_E_T_E", answer: btoa("THEATRE") }
+        ]},
+        "FAC005": { code: "FAC005", niveau: "facile", theme: "Animaux", rounds: [
+            { word: "C_I_N", answer: btoa("CHIEN") },
+            { word: "C_A_", answer: btoa("CHAT") },
+            { word: "L_P_N", answer: btoa("LAPIN") },
+            { word: "O_S_A_U", answer: btoa("OISEAU") },
+            { word: "P_I_S_N", answer: btoa("POISSON") }
+        ]},
+        "FAC006": { code: "FAC006", niveau: "facile", theme: "Maison", rounds: [
+            { word: "C_A_S_", answer: btoa("CHAISE") },
+            { word: "T_B_E", answer: btoa("TABLE") },
+            { word: "P_R_E", answer: btoa("PORTE") },
+            { word: "F_N_T_E", answer: btoa("FENETRE") },
+            { word: "L_M_E", answer: btoa("LAMPE") }
+        ]},
+        "FAC007": { code: "FAC007", niveau: "facile", theme: "Transport", rounds: [
+            { word: "V_I_U_E", answer: btoa("VOITURE") },
+            { word: "T_A_I_", answer: btoa("TRAIN") },
+            { word: "A_I_N", answer: btoa("AVION") },
+            { word: "B_T_A_", answer: btoa("BATEAU") },
+            { word: "M_T_", answer: btoa("MOTO") }
+        ]},
+        "FAC008": { code: "FAC008", niveau: "facile", theme: "Nourriture", rounds: [
+            { word: "P_Z_A", answer: btoa("PIZZA") },
+            { word: "P_T_S", answer: btoa("PATES") },
+            { word: "S_N_W_C_", answer: btoa("SANDWICH") },
+            { word: "S_U_E", answer: btoa("SOUPE") },
+            { word: "P_I_N", answer: btoa("PAIN") }
+        ]},
+        "FAC009": { code: "FAC009", niveau: "facile", theme: "Météo", rounds: [
+            { word: "P_U_E", answer: btoa("PLUIE") },
+            { word: "N_I_E", answer: btoa("NEIGE") },
+            { word: "S_L_I_", answer: btoa("SOLEIL") },
+            { word: "N_A_E", answer: btoa("NUAGE") },
+            { word: "V_N_", answer: btoa("VENT") }
+        ]},
+        "FAC010": { code: "FAC010", niveau: "facile", theme: "Vêtements", rounds: [
+            { word: "C_E_I_E", answer: btoa("CHEMISE") },
+            { word: "P_N_A_O_", answer: btoa("PANTALON") },
+            { word: "C_A_P_U", answer: btoa("CHAPEAU") },
+            { word: "B_T_", answer: btoa("BOTTE") },
+            { word: "R_B_", answer: btoa("ROBE") }
+        ]},
+        "FAC011": { code: "FAC011", niveau: "facile", theme: "Métiers", rounds: [
+            { word: "M_D_C_N", answer: btoa("MEDECIN") },
+            { word: "P_O_E_S_U_", answer: btoa("PROFESSEUR") },
+            { word: "A_T_S_E", answer: btoa("ARTISTE") },
+            { word: "P_O_T_", answer: btoa("PILOTE") },
+            { word: "C_E_", answer: btoa("CHEF") }
+        ]},
+        "FAC012": { code: "FAC012", niveau: "facile", theme: "Corps", rounds: [
+            { word: "T_T_", answer: btoa("TETE") },
+            { word: "C_E_R", answer: btoa("COEUR") },
+            { word: "B_A_", answer: btoa("BRAS") },
+            { word: "J_M_E_", answer: btoa("JAMBES") },
+            { word: "P_E_", answer: btoa("PIED") }
+        ]},
+        "FAC013": { code: "FAC013", niveau: "facile", theme: "Sports", rounds: [
+            { word: "F_O_B_L_", answer: btoa("FOOTBALL") },
+            { word: "T_N_I_", answer: btoa("TENNIS") },
+            { word: "B_S_E_", answer: btoa("BASKET") },
+            { word: "N_T_T_O_", answer: btoa("NATATION") },
+            { word: "S_I_", answer: btoa("SKI") }
+        ]},
+        "FAC014": { code: "FAC014", niveau: "facile", theme: "Nombres", rounds: [
+            { word: "N_M_R_", answer: btoa("NOMBRE") },
+            { word: "C_L_U_", answer: btoa("CALCUL") },
+            { word: "S_M_E", answer: btoa("SOMME") },
+            { word: "D_V_S_O_", answer: btoa("DIVISION") },
+            { word: "M_L_I_L_C_T_O_", answer: btoa("MULTIPLICATION") }
+        ]},
+        "FAC015": { code: "FAC015", niveau: "facile", theme: "Musique", rounds: [
+            { word: "N_T_", answer: btoa("NOTE") },
+            { word: "M_L_D_E", answer: btoa("MELODIE") },
+            { word: "C_A_S_N", answer: btoa("CHANSON") },
+            { word: "R_T_M_", answer: btoa("RYTHME") },
+            { word: "G_I_A_E", answer: btoa("GUITARE") }
+        ]},
+        "FAC016": { code: "FAC016", niveau: "facile", theme: "Fleurs", rounds: [
+            { word: "R_S_", answer: btoa("ROSE") },
+            { word: "T_L_P_", answer: btoa("TULIPE") },
+            { word: "L_S", answer: btoa("LYS") },
+            { word: "M_R_U_R_T_", answer: btoa("MARGUERITE") },
+            { word: "D_H_A", answer: btoa("DAHLIA") }
+        ]},
+        "FAC017": { code: "FAC017", niveau: "facile", theme: "École", rounds: [
+            { word: "C_A_E_", answer: btoa("CAHIER") },
+            { word: "C_A_O_", answer: btoa("CRAYON") },
+            { word: "L_V_E", answer: btoa("LIVRE") },
+            { word: "E_L_V_", answer: btoa("ELEVE") },
+            { word: "T_B_E_U", answer: btoa("TABLEAU") }
+        ]},
+        "FAC018": { code: "FAC018", niveau: "facile", theme: "Famille", rounds: [
+            { word: "M_R_", answer: btoa("MERE") },
+            { word: "P_R_", answer: btoa("PERE") },
+            { word: "F_E_E", answer: btoa("FRERE") },
+            { word: "S_U_", answer: btoa("SOEUR") },
+            { word: "E_F_N_", answer: btoa("ENFANT") }
+        ]},
+        "FAC019": { code: "FAC019", niveau: "facile", theme: "Cuisine", rounds: [
+            { word: "C_S_E_O_E", answer: btoa("CASSEROLE") },
+            { word: "A_S_E_T_E", answer: btoa("ASSIETTE") },
+            { word: "C_U_E_U", answer: btoa("COUTEAU") },
+            { word: "F_U_", answer: btoa("FOUR") },
+            { word: "P_E_E", answer: btoa("POELE") }
+        ]},
+        "FAC020": { code: "FAC020", niveau: "facile", theme: "Pays", rounds: [
+            { word: "F_A_C_", answer: btoa("FRANCE") },
+            { word: "P_R_S", answer: btoa("PARIS") },
+            { word: "I_A_I_", answer: btoa("ITALIE") },
+            { word: "R_M_", answer: btoa("ROME") },
+            { word: "V_Y_G_", answer: btoa("VOYAGE") }
+        ]},
+        "FAC021": { code: "FAC021", niveau: "facile", theme: "Écriture", rounds: [
+            { word: "L_T_R_", answer: btoa("LETTRE") },
+            { word: "M_T", answer: btoa("MOT") },
+            { word: "L_I_G_", answer: btoa("LIGNE") },
+            { word: "L_R_", answer: btoa("LIRE") },
+            { word: "E_C_I_E", answer: btoa("ECRIRE") }
+        ]},
+        "FAC022": { code: "FAC022", niveau: "facile", theme: "Sauvages", rounds: [
+            { word: "L_O_", answer: btoa("LION") },
+            { word: "T_G_E", answer: btoa("TIGRE") },
+            { word: "O_R_", answer: btoa("OURS") },
+            { word: "E_E_A_T", answer: btoa("ELEPHANT") },
+            { word: "S_N_E", answer: btoa("SINGE") }
+        ]},
+        "FAC023": { code: "FAC023", niveau: "facile", theme: "Boissons", rounds: [
+            { word: "C_F_", answer: btoa("CAFE") },
+            { word: "T_E", answer: btoa("THE") },
+            { word: "E_U", answer: btoa("EAU") },
+            { word: "J_S", answer: btoa("JUS") },
+            { word: "L_I_", answer: btoa("LAIT") }
+        ]},
+        "FAC024": { code: "FAC024", niveau: "facile", theme: "Outils", rounds: [
+            { word: "M_R_E_U", answer: btoa("MARTEAU") },
+            { word: "C_O_", answer: btoa("CLOU") },
+            { word: "V_S", answer: btoa("VIS") },
+            { word: "P_N_E", answer: btoa("PINCE") },
+            { word: "S_I_", answer: btoa("SCIE") }
+        ]},
+        "FAC025": { code: "FAC025", niveau: "facile", theme: "Temps", rounds: [
+            { word: "H_U_E", answer: btoa("HEURE") },
+            { word: "J_U_", answer: btoa("JOUR") },
+            { word: "S_M_I_E", answer: btoa("SEMAINE") },
+            { word: "M_I_", answer: btoa("MOIS") },
+            { word: "T_M_S", answer: btoa("TEMPS") }
+        ]},
+        
+        // Niveau MOYEN (25 parties)
+        "MOY001": { code: "MOY001", niveau: "moyen", theme: "Concepts", rounds: [
+            { word: "É_U_L_B_E", answer: btoa("EQUILIBRE") },
+            { word: "H_R_O_I_E", answer: btoa("HARMONIE") },
+            { word: "S_R_N_T_", answer: btoa("SERENITE") },
+            { word: "J_S_I_E", answer: btoa("JUSTICE") },
+            { word: "L_B_R_E", answer: btoa("LIBERTE") }
+        ]},
+        "MOY002": { code: "MOY002", niveau: "moyen", theme: "Littérature", rounds: [
+            { word: "M_T_P_O_E", answer: btoa("METAPHORE") },
+            { word: "R_M_N", answer: btoa("ROMAN") },
+            { word: "P_E_I_", answer: btoa("POESIE") },
+            { word: "C_N_E", answer: btoa("CONTE") },
+            { word: "F_B_E", answer: btoa("FABLE") }
+        ]},
+        "MOY003": { code: "MOY003", niveau: "moyen", theme: "Sciences", rounds: [
+            { word: "B_O_O_I_", answer: btoa("BIOLOGIE") },
+            { word: "G_O_O_I_", answer: btoa("GEOLOGIE") },
+            { word: "P_Y_I_U_", answer: btoa("PHYSIQUE") },
+            { word: "C_I_I_", answer: btoa("CHIMIE") },
+            { word: "A_T_O_O_I_", answer: btoa("ASTRONOMIE") }
+        ]},
+        "MOY004": { code: "MOY004", niveau: "moyen", theme: "Musique", rounds: [
+            { word: "S_M_H_N_E", answer: btoa("SYMPHONIE") },
+            { word: "C_N_E_T", answer: btoa("CONCERT") },
+            { word: "O_É_A", answer: btoa("OPERA") },
+            { word: "B_L_E_", answer: btoa("BALLET") },
+            { word: "V_O_O_", answer: btoa("VIOLON") }
+        ]},
+        "MOY005": { code: "MOY005", niveau: "moyen", theme: "Sentiments", rounds: [
+            { word: "N_S_A_G_E", answer: btoa("NOSTALGIE") },
+            { word: "M_L_N_O_I_", answer: btoa("MELANCHOLIE") },
+            { word: "J_L_U_I_E", answer: btoa("JALOUSIE") },
+            { word: "C_L_R_", answer: btoa("COLERE") },
+            { word: "G_A_D_U_", answer: btoa("GRANDEUR") }
+        ]},
+        "MOY006": { code: "MOY006", niveau: "moyen", theme: "Art", rounds: [
+            { word: "S_U_P_U_E", answer: btoa("SCULPTURE") },
+            { word: "P_I_T_R_", answer: btoa("PEINTURE") },
+            { word: "M_S_E", answer: btoa("MUSEE") },
+            { word: "G_L_R_E", answer: btoa("GALERIE") },
+            { word: "E_H_B_I_I_N", answer: btoa("EXHIBITION") }
+        ]},
+        "MOY007": { code: "MOY007", niveau: "moyen", theme: "Aventure", rounds: [
+            { word: "E_P_O_A_I_N", answer: btoa("EXPLORATION") },
+            { word: "V_Y_G_", answer: btoa("VOYAGE") },
+            { word: "A_E_T_R_", answer: btoa("AVENTURE") },
+            { word: "D_C_U_E_T_", answer: btoa("DECOUVERTE") },
+            { word: "E_P_D_T_I_N", answer: btoa("EXPEDITION") }
+        ]},
+        "MOY008": { code: "MOY008", niveau: "moyen", theme: "Phénomènes", rounds: [
+            { word: "T_E_B_E_E_T", answer: btoa("TREMBLEMENT") },
+            { word: "V_L_A_", answer: btoa("VOLCAN") },
+            { word: "T_U_N_D_", answer: btoa("TROUNADE") },
+            { word: "O_A_E", answer: btoa("ORAGE") },
+            { word: "E_C_I_", answer: btoa("ECLAI") }
+        ]},
+        "MOY009": { code: "MOY009", niveau: "moyen", theme: "Technologie", rounds: [
+            { word: "O_D_N_T_U_", answer: btoa("ORDINATEUR") },
+            { word: "I_T_R_E_", answer: btoa("INTERNET") },
+            { word: "P_O_R_M_E", answer: btoa("PROGRAMME") },
+            { word: "E_E_T_O_I_U_", answer: btoa("ELECTRONIQUE") },
+            { word: "D_G_T_L", answer: btoa("DIGITAL") }
+        ]},
+        "MOY010": { code: "MOY010", niveau: "moyen", theme: "Philosophie", rounds: [
+            { word: "L_G_Q_E", answer: btoa("LOGIQUE") },
+            { word: "P_I_O_O_H_E", answer: btoa("PHILOSOPHE") },
+            { word: "S_G_S_E", answer: btoa("SAGESSE") },
+            { word: "É_H_Q_E", answer: btoa("ETHIQUE") },
+            { word: "M_R_L_", answer: btoa("MORALE") }
+        ]},
+        "MOY011": { code: "MOY011", niveau: "moyen", theme: "Cuisine", rounds: [
+            { word: "R_C_T_E", answer: btoa("RECETTE") },
+            { word: "C_I_I_I_R", answer: btoa("CUISINIER") },
+            { word: "G_S_O_O_I_", answer: btoa("GASTRONOMIE") },
+            { word: "S_V_U_", answer: btoa("SAVEUR") },
+            { word: "A_P_T_T", answer: btoa("APPETIT") }
+        ]},
+        "MOY012": { code: "MOY012", niveau: "moyen", theme: "Danse", rounds: [
+            { word: "B_L_E_", answer: btoa("BALLET") },
+            { word: "M_U_E_E_T", answer: btoa("MOUVEMENT") },
+            { word: "G_A_C_", answer: btoa("GRACE") },
+            { word: "R_T_M_", answer: btoa("RYTHME") },
+            { word: "V_L_T_", answer: btoa("VOLUTE") }
+        ]},
+        "MOY013": { code: "MOY013", niveau: "moyen", theme: "Mystère", rounds: [
+            { word: "E_I_M_", answer: btoa("ENIGME") },
+            { word: "M_S_E_E", answer: btoa("MYSTERE") },
+            { word: "S_C_E_", answer: btoa("SECRET") },
+            { word: "I_T_I_U_", answer: btoa("INTRIGUE") },
+            { word: "P_Z_L_", answer: btoa("PUZZLE") }
+        ]},
+        "MOY014": { code: "MOY014", niveau: "moyen", theme: "Luxe", rounds: [
+            { word: "O_U_N_R", answer: btoa("ORNEMENT") },
+            { word: "J_Y_U_", answer: btoa("JOYAU") },
+            { word: "D_A_A_T", answer: btoa("DIAMANT") },
+            { word: "T_E_S_R", answer: btoa("TRESOR") },
+            { word: "P_E_I_U_", answer: btoa("PRECIEUX") }
+        ]},
+        "MOY015": { code: "MOY015", niveau: "moyen", theme: "Expérience", rounds: [
+            { word: "S_G_S_E", answer: btoa("SAGESSE") },
+            { word: "E_P_R_E_C_", answer: btoa("EXPERIENCE") },
+            { word: "C_N_A_S_A_C_", answer: btoa("CONNAISSANCE") },
+            { word: "V_R_U", answer: btoa("VERTU") },
+            { word: "M_T_R_T_", answer: btoa("MATURITE") }
+        ]},
+        "MOY016": { code: "MOY016", niveau: "moyen", theme: "Histoire", rounds: [
+            { word: "A_T_Q_I_É", answer: btoa("ANTIQUITE") },
+            { word: "C_L_S_E", answer: btoa("COLISEE") },
+            { word: "E_P_R_", answer: btoa("EMPIRE") },
+            { word: "R_Y_U_E", answer: btoa("ROYAUME") },
+            { word: "C_R_Z_D_", answer: btoa("CROISADE") }
+        ]},
+        "MOY017": { code: "MOY017", niveau: "moyen", theme: "Nature", rounds: [
+            { word: "S_V_N_", answer: btoa("SAVANE") },
+            { word: "S_F_R_", answer: btoa("SAFARI") },
+            { word: "J_N_L_", answer: btoa("JUNGLE") },
+            { word: "F_O_E_", answer: btoa("FORET") },
+            { word: "P_A_S_G_", answer: btoa("PAYSAGE") }
+        ]},
+        "MOY018": { code: "MOY018", niveau: "moyen", theme: "Beauté", rounds: [
+            { word: "G_A_D_U_", answer: btoa("GRANDEUR") },
+            { word: "É_E_A_C_", answer: btoa("ELEGANCE") },
+            { word: "S_L_E_D_U_", answer: btoa("SPLENDEUR") },
+            { word: "R_D_A_C_", answer: btoa("RADIANCE") },
+            { word: "C_A_M_", answer: btoa("CHARME") }
+        ]},
+        "MOY019": { code: "MOY019", niveau: "moyen", theme: "Commerce", rounds: [
+            { word: "M_R_H_", answer: btoa("MARCHE") },
+            { word: "A_F_I_E_", answer: btoa("AFFAIRE") },
+            { word: "C_M_E_C_", answer: btoa("COMMERCE") },
+            { word: "É_O_O_I_", answer: btoa("ECONOMIE") },
+            { word: "P_I_", answer: btoa("PRIX") }
+        ]},
+        "MOY020": { code: "MOY020", niveau: "moyen", theme: "Mathématiques", rounds: [
+            { word: "G_O_É_R_E", answer: btoa("GEOMETRIE") },
+            { word: "A_G_B_E", answer: btoa("ALGEBRE") },
+            { word: "C_L_U_", answer: btoa("CALCUL") },
+            { word: "E_U_T_O_", answer: btoa("EQUATION") },
+            { word: "V_R_A_I_N", answer: btoa("VARIABLE") }
+        ]},
+        "MOY021": { code: "MOY021", niveau: "moyen", theme: "Chimie", rounds: [
+            { word: "M_L_C_L_", answer: btoa("MOLECULE") },
+            { word: "R_A_T_O_", answer: btoa("REACTION") },
+            { word: "A_I_E", answer: btoa("ACIDE") },
+            { word: "B_S_", answer: btoa("BASE") },
+            { word: "E_L_M_N_", answer: btoa("ELEMENT") }
+        ]},
+        "MOY022": { code: "MOY022", niveau: "moyen", theme: "Géographie", rounds: [
+            { word: "C_N_I_E_T", answer: btoa("CONTINENT") },
+            { word: "M_N_A_N_", answer: btoa("MONTAGNE") },
+            { word: "D_S_R_", answer: btoa("DESERT") },
+            { word: "F_O_E_", answer: btoa("FORET") },
+            { word: "O_E_N", answer: btoa("OCEAN") }
+        ]},
+        "MOY023": { code: "MOY023", niveau: "moyen", theme: "Cosmos", rounds: [
+            { word: "P_L_N_T_", answer: btoa("PLANETE") },
+            { word: "G_L_X_E", answer: btoa("GALAXIE") },
+            { word: "N_B_L_U_E", answer: btoa("NEBULEUSE") },
+            { word: "T_L_S_O_E", answer: btoa("TELESCOPE") },
+            { word: "C_M_T_", answer: btoa("COMETE") }
+        ]},
+        "MOY024": { code: "MOY024", niveau: "moyen", theme: "Médecine", rounds: [
+            { word: "M_D_C_N", answer: btoa("MEDECIN") },
+            { word: "H_P_T_L", answer: btoa("HOPITAL") },
+            { word: "M_D_C_M_N_", answer: btoa("MEDICAMENT") },
+            { word: "D_A_N_S_I_", answer: btoa("DIAGNOSTIC") },
+            { word: "T_E_P_U_I_U_E", answer: btoa("THERAPEUTIQUE") }
+        ]},
+        "MOY025": { code: "MOY025", niveau: "moyen", theme: "Psychologie", rounds: [
+            { word: "P_Y_H_L_G_E", answer: btoa("PSYCHOLOGIE") },
+            { word: "É_O_I_N", answer: btoa("EMOTION") },
+            { word: "C_N_C_E_N_E", answer: btoa("CONSCIENCE") },
+            { word: "P_R_O_N_A_I_É", answer: btoa("PERSONNALITE") },
+            { word: "C_M_O_T_M_N_", answer: btoa("COMPORTEMENT") }
+        ]},
+        
+        // Niveau DIFFICILE (25 parties)
+        "DIF001": { code: "DIF001", niveau: "difficile", theme: "Termes", rounds: [
+            { word: "P_R_P_C_C_T_", answer: btoa("PERSPICACITE") },
+            { word: "O_S_S_O_", answer: btoa("OBSESSION") },
+            { word: "C_M_L_I_A_C_", answer: btoa("COMPLAISANCE") },
+            { word: "M_L_V_L_N_C_", answer: btoa("MALVEILLANCE") },
+            { word: "D_C_N_V_N_U_R_", answer: btoa("DECONVENUE") }
+        ]},
+        "DIF002": { code: "DIF002", niveau: "difficile", theme: "Rhétorique", rounds: [
+            { word: "O_O_A_O_O_P_E", answer: btoa("ONOMATOPEE") },
+            { word: "M_T_P_O_E", answer: btoa("METAPHORE") },
+            { word: "M_T_N_Y_I_", answer: btoa("METONYMIE") },
+            { word: "S_N_C_D_C_E", answer: btoa("SYNECDOCHE") },
+            { word: "A_L_E_I_A_I_N", answer: btoa("ALLITERATION") }
+        ]},
+        "DIF003": { code: "DIF003", niveau: "difficile", theme: "Philosophie", rounds: [
+            { word: "H_R_É_E_T_Q_E", answer: btoa("HERMENEUTIQUE") },
+            { word: "P_A_O_I_M_", answer: btoa("PLATONISME") },
+            { word: "O_T_L_G_E", answer: btoa("ONTOLOGIE") },
+            { word: "A_I_T_T_L_S_E", answer: btoa("ARISTOTELISME") },
+            { word: "N_H_L_S_E", answer: btoa("NIHILISME") }
+        ]},
+        "DIF004": { code: "DIF004", niveau: "difficile", theme: "Sciences", rounds: [
+            { word: "M_T_O_O_O_I_", answer: btoa("METEOROLOGIE") },
+            { word: "S_I_S_O_O_I_", answer: btoa("SISMOLOGIE") },
+            { word: "P_A_M_C_L_G_E", answer: btoa("PHARMACOLOGIE") },
+            { word: "G_N_T_Q_E", answer: btoa("GENETIQUE") },
+            { word: "B_O_E_N_T_Q_U_E", answer: btoa("BIOENERGETIQUE") }
+        ]},
+        "DIF005": { code: "DIF005", niveau: "difficile", theme: "Musique", rounds: [
+            { word: "P_L_P_O_I_", answer: btoa("POLYPHONIE") },
+            { word: "C_M_O_I_I_N", answer: btoa("COMPOSITION") },
+            { word: "H_R_O_I_", answer: btoa("HARMONIE") },
+            { word: "O_C_E_T_A_I_N", answer: btoa("ORCHESTRATION") },
+            { word: "A_O_I_T_", answer: btoa("ACOUSTIQUE") }
+        ]},
+        "DIF006": { code: "DIF006", niveau: "difficile", theme: "Pathologie", rounds: [
+            { word: "S_L_R_S_E", answer: btoa("SCLEROSE") },
+            { word: "A_P_P_L_X_E", answer: btoa("APOPLEXIE") },
+            { word: "P_R_L_S_E", answer: btoa("PARALYSIE") },
+            { word: "P_E_M_N_E", answer: btoa("PNEUMONIE") },
+            { word: "D_Y_E_T_R_E", answer: btoa("DYSENTERIE") }
+        ]},
+        "DIF007": { code: "DIF007", niveau: "difficile", theme: "Architecture", rounds: [
+            { word: "B_S_L_Q_E", answer: btoa("BASILIQUE") },
+            { word: "C_T_E_R_L_E", answer: btoa("CATHEDRALE") },
+            { word: "M_N_L_T_E", answer: btoa("MONOLITHE") },
+            { word: "C_L_N_A_E", answer: btoa("COLONNADE") },
+            { word: "A_O_U_T_R_", answer: btoa("ARCHITECTURE") }
+        ]},
+        "DIF008": { code: "DIF008", niveau: "difficile", theme: "Linguistique", rounds: [
+            { word: "S_M_N_I_U_E", answer: btoa("SEMANTIQUE") },
+            { word: "S_N_A_E", answer: btoa("SYNTAXE") },
+            { word: "M_R_H_L_G_", answer: btoa("MORPHOLOGIE") },
+            { word: "P_O_O_L_G_E", answer: btoa("PHONOLOGIE") },
+            { word: "L_X_C_L_G_E", answer: btoa("LEXICOLOGIE") }
+        ]},
+        "DIF009": { code: "DIF009", niveau: "difficile", theme: "Médiéval", rounds: [
+            { word: "F_U_A_I_S_", answer: btoa("FEODALISME") },
+            { word: "V_S_A_I_T_", answer: btoa("VASSALITE") },
+            { word: "S_I_E_U_I_L_E", answer: btoa("SEIGNEURIALE") },
+            { word: "C_U_A_E", answer: btoa("CROISADE") },
+            { word: "I_Q_I_I_I_N", answer: btoa("INQUISITION") }
+        ]},
+        "DIF010": { code: "DIF010", niveau: "difficile", theme: "Art", rounds: [
+            { word: "I_P_E_S_O_I_S_E", answer: btoa("IMPRESSIONISME") },
+            { word: "C_A_O_S_U_O", answer: btoa("CLAIROSCURO") },
+            { word: "C_M_P_S_T_O_", answer: btoa("COMPOSITION") },
+            { word: "P_R_P_C_T_V_", answer: btoa("PERSPECTIVE") },
+            { word: "L_M_N_S_T_", answer: btoa("LUMINOSITE") }
+        ]},
+        "DIF011": { code: "DIF011", niveau: "difficile", theme: "Chimie", rounds: [
+            { word: "H_D_O_A_B_R_", answer: btoa("HYDROCARBON") },
+            { word: "O_Y_A_I_N", answer: btoa("OXYDATION") },
+            { word: "A_I_D_T_O_", answer: btoa("AMIDATION") },
+            { word: "E_T_R_F_C_T_O_", answer: btoa("ESTERIFICATION") },
+            { word: "P_L_M_R_S_T_O_", answer: btoa("POLYMERISATION") }
+        ]},
+        "DIF012": { code: "DIF012", niveau: "difficile", theme: "Théâtre", rounds: [
+            { word: "A_V_N_G_R_D_", answer: btoa("AVANT-GARDE") },
+            { word: "A_S_R_I_T_", answer: btoa("ABSURDITE") },
+            { word: "M_T_T_E_T_E", answer: btoa("METATHEATRE") },
+            { word: "I_T_R_C_I_N_", answer: btoa("INTERACTION") },
+            { word: "D_A_A_I_S_", answer: btoa("DRAMATISME") }
+        ]},
+        "DIF013": { code: "DIF013", niveau: "difficile", theme: "Géologie", rounds: [
+            { word: "P_T_R_G_A_I_", answer: btoa("PETROGRAPHIE") },
+            { word: "S_D_M_N_L_G_E", answer: btoa("SEDIMENTOLOGIE") },
+            { word: "T_C_O_I_U_E", answer: btoa("TECTONIQUE") },
+            { word: "S_R_T_G_A_I_E", answer: btoa("STRATIGRAPHIE") },
+            { word: "M_T_M_R_H_S_E", answer: btoa("METAMORPHOSE") }
+        ]},
+        "DIF014": { code: "DIF014", niveau: "difficile", theme: "Logique", rounds: [
+            { word: "P_R_D_G_E", answer: btoa("PARADIGME") },
+            { word: "D_D_C_I_N", answer: btoa("DEDUCTION") },
+            { word: "I_D_C_I_N", answer: btoa("INDUCTION") },
+            { word: "A_A_G_I_", answer: btoa("ANALOGIE") },
+            { word: "A_I_M_T_S_E", answer: btoa("AXIOMATISME") }
+        ]},
+        "DIF015": { code: "DIF015", niveau: "difficile", theme: "Botanique", rounds: [
+            { word: "C_L_R_P_Y_L_E", answer: btoa("CHLOROPHYLLE") },
+            { word: "S_N_E_C_N_C_", answer: btoa("SENESCENCE") },
+            { word: "P_O_T_X_N_E", answer: btoa("PHYTOTOXINE") },
+            { word: "E_D_S_H_R_M_B_I_T_E", answer: btoa("ENDOSPHERE") },
+            { word: "X_L_P_A_E_", answer: btoa("XYLOPHAGE") }
+        ]},
+        "DIF016": { code: "DIF016", niveau: "difficile", theme: "Rhétorique", rounds: [
+            { word: "A_T_P_T_I_E", answer: btoa("ANTIPATHIE") },
+            { word: "A_I_S_T_T_A", answer: btoa("ALLITERATION") },
+            { word: "A_A_I_O_S_", answer: btoa("ANADIPLOSE") },
+            { word: "A_A_P_O_E", answer: btoa("ANAPHORE") },
+            { word: "A_T_H_S_S", answer: btoa("ANTITHESE") }
+        ]},
+        "DIF017": { code: "DIF017", niveau: "difficile", theme: "Astronomie", rounds: [
+            { word: "A_T_R_S_I_M_", answer: btoa("ASTEROSEISME") },
+            { word: "C_S_O_O_I_", answer: btoa("COSMOLOGIE") },
+            { word: "R_L_T_V_T_", answer: btoa("RELATIVITE") },
+            { word: "Q_A_T_M_C_I_U_E", answer: btoa("QUANTUMMECANIQUE") },
+            { word: "G_A_I_T_O_I_L_", answer: btoa("GRAVITATIONNEL") }
+        ]},
+        "DIF018": { code: "DIF018", niveau: "difficile", theme: "Psychanalyse", rounds: [
+            { word: "I_C_N_C_N_C_", answer: btoa("INCONSCIENCE") },
+            { word: "S_B_L_I_A_I_T_", answer: btoa("SUBLIMINALITE") },
+            { word: "T_A_S_E_N_C_", answer: btoa("TRANSFERENCE") },
+            { word: "N_V_O_S_", answer: btoa("NEVROSE") },
+            { word: "A_C_E_Y_P_", answer: btoa("ARCHETYPE") }
+        ]},
+        "DIF019": { code: "DIF019", niveau: "difficile", theme: "Danse", rounds: [
+            { word: "C_O_E_G_A_I_", answer: btoa("CHOREOGRAPHIE") },
+            { word: "P_S_N_T_U_E", answer: btoa("POSTURE") },
+            { word: "I_P_O_I_A_I_O_", answer: btoa("IMPROVISATION") },
+            { word: "D_N_I_U_E", answer: btoa("DYNAMIQUE") },
+            { word: "G_A_V_T_", answer: btoa("GRAVITE") }
+        ]},
+        "DIF020": { code: "DIF020", niveau: "difficile", theme: "Philologie", rounds: [
+            { word: "É_Y_O_O_I_", answer: btoa("ETYMOLOGIE") },
+            { word: "N_O_O_I_", answer: btoa("NEOLOGIE") },
+            { word: "P_I_O_O_I_", answer: btoa("PHILOLOGIE") },
+            { word: "D_A_E_T_O_O_I_", answer: btoa("DIALECTOLOGIE") },
+            { word: "P_L_S_E_I_", answer: btoa("PLEONASME") }
+        ]},
+        "DIF021": { code: "DIF021", niveau: "difficile", theme: "Cosmogonie", rounds: [
+            { word: "E_C_A_O_O_I_", answer: btoa("ESCHATOLOGIE") },
+            { word: "T_E_O_O_I_", answer: btoa("THEOGONIE") },
+            { word: "M_T_O_O_I_", answer: btoa("MYTHOLOGIE") },
+            { word: "C_S_O_O_I_", answer: btoa("COSMOGONIE") },
+            { word: "P_I_I_O_O_I_", answer: btoa("PRIMORDIALITE") }
+        ]},
+        "DIF022": { code: "DIF022", niveau: "difficile", theme: "Quantique", rounds: [
+            { word: "S_P_R_O_I_I_N", answer: btoa("SUPERPOSITION") },
+            { word: "E_T_N_L_M_N_", answer: btoa("ENTANGLEMENT") },
+            { word: "D_A_I_M_", answer: btoa("DUALISME") },
+            { word: "I_C_R_I_U_D_", answer: btoa("INCERTITUDE") },
+            { word: "P_O_A_I_I_T_", answer: btoa("PROBABILITE") }
+        ]},
+        "DIF023": { code: "DIF023", niveau: "difficile", theme: "Gastronomie", rounds: [
+            { word: "S_H_R_F_C_I_O_", answer: btoa("SPHERIFICATION") },
+            { word: "G_L_F_C_T_O_", answer: btoa("GELIFICATION") },
+            { word: "E_U_S_F_C_T_O_", answer: btoa("EMULSIFICATION") },
+            { word: "V_P_R_Z_T_O_", answer: btoa("VAPORIZATION") },
+            { word: "A_R_T_C_I_A_L_T_E", answer: btoa("AEROSTATION") }
+        ]},
+        "DIF024": { code: "DIF024", niveau: "difficile", theme: "Paranormal", rounds: [
+            { word: "T_L_P_T_I_", answer: btoa("TELEPATHIE") },
+            { word: "T_L_K_N_S_", answer: btoa("TELEKINESE") },
+            { word: "P_E_O_N_T_O_", answer: btoa("PRECOGNITION") },
+            { word: "R_T_O_O_N_T_O_", answer: btoa("RETROCOGNITION") },
+            { word: "C_A_R_O_A_C_", answer: btoa("CLAIRVOYANCE") }
+        ]},
+        "DIF025": { code: "DIF025", niveau: "difficile", theme: "Neurosciences", rounds: [
+            { word: "N_U_O_A_T_C_T_", answer: btoa("NEUROPLASTICITE") },
+            { word: "S_N_P_O_E_S_", answer: btoa("SYNAPTOGENESE") },
+            { word: "M_E_I_N_S_A_I_O_", answer: btoa("MYELINISATION") },
+            { word: "N_U_R_T_N_M_S_I_O_", answer: btoa("NEUROTRANSMISSION") },
+            { word: "N_U_I_F_A_O_", answer: btoa("NEUROINFLAMATION") }
+        ]},
+        
+        // Niveau EXPERT (25 parties)
+        "EXP001": { code: "EXP001", niveau: "expert", theme: "Lexicographie", rounds: [
+            { word: "O_O_A_O_O_E", answer: btoa("ONOMATOPEIA") },
+            { word: "H_R_E_E_T_Q_U_E", answer: btoa("HERMENEUTIQUE") },
+            { word: "P_E_O_E_O_O_I_", answer: btoa("PHENOMENOLOGIE") },
+            { word: "E_I_T_E_O_O_I_", answer: btoa("EPISTEMOLOGIE") },
+            { word: "D_C_N_T_C_I_O_", answer: btoa("DECONSTRUCTION") }
+        ]},
+        "EXP002": { code: "EXP002", niveau: "expert", theme: "Mathématiques", rounds: [
+            { word: "D_F_E_E_N_I_L_L_E", answer: btoa("DIFFERENTIELLE") },
+            { word: "I_T_E_A_L_E", answer: btoa("INTEGRALE") },
+            { word: "E_U_I_O_D_D_F_E_E_N_I_L_L_E", answer: btoa("EQUATIONDIFFERENTIELLE") },
+            { word: "T_P_O_O_I_", answer: btoa("TOPOLOGIE") },
+            { word: "A_G_B_A_I_E_A_I_R_E", answer: btoa("ALGEBRELINEAIRE") }
+        ]},
+        "EXP003": { code: "EXP003", niveau: "expert", theme: "Chimie", rounds: [
+            { word: "R_D_O_C_T_V_T_E", answer: btoa("RADIOACTIVITE") },
+            { word: "F_S_I_N_C_E_A_I_R_E", answer: btoa("FISSION") },
+            { word: "F_S_O_N_C_E_A_I_R_E", answer: btoa("FUSION") },
+            { word: "D_S_I_T_E_G_A_I_O_", answer: btoa("DESINTEGRATION") },
+            { word: "R_A_I_O_N_C_E_A_I_R_E", answer: btoa("REACTIONNUCLEAIRE") }
+        ]},
+        "EXP004": { code: "EXP004", niveau: "expert", theme: "Microscopie", rounds: [
+            { word: "U_T_A_R_S_O_U_I_O_", answer: btoa("ULTRARESOLUTION") },
+            { word: "M_C_O_C_P_E_E_L_C_T_O_I_U_E", answer: btoa("MICROSCOPIEELECTRONIQUE") },
+            { word: "C_I_S_A_L_O_G_E", answer: btoa("CRISTALLOGRAPHIE") },
+            { word: "S_A_N_I_N_G_T_N_E_I_I_N_G", answer: btoa("SCANNINGTUNNELING") },
+            { word: "S_E_T_O_C_P_Y", answer: btoa("SPECTROSCOPY") }
+        ]},
+        "EXP005": { code: "EXP005", niveau: "expert", theme: "Éthique", rounds: [
+            { word: "D_O_O_I_O_O_I_E", answer: btoa("DEONTOLOGIE") },
+            { word: "U_I_I_A_I_A_I_S_M_E", answer: btoa("UTILITARIANISME") },
+            { word: "C_N_E_Q_E_I_A_I_S_M_E", answer: btoa("CONSEQUENTIALISME") },
+            { word: "V_R_U_E_H_I_U_E", answer: btoa("VERTUETHIQUE") },
+            { word: "I_P_A_I_C_E_G_O_I_Q_U_E", answer: btoa("IMPERATIVECATEGORIQUE") }
+        ]},
+        "EXP006": { code: "EXP006", niveau: "expert", theme: "Linguistique", rounds: [
+            { word: "G_A_M_I_R_E_G_E_E_A_I_V_E", answer: btoa("GRAMMAIREGENERATIVE") },
+            { word: "T_A_S_O_M_A_I_O_N_E_L_L_E", answer: btoa("TRANSFORMATIONNELLE") },
+            { word: "S_N_A_E_U_I_V_E_S_A_L_L_E", answer: btoa("SYNTAXEUNIVERSELLE") },
+            { word: "R_C_R_I_I_T_", answer: btoa("RECURSIVITE") },
+            { word: "C_M_E_E_N_C_E_L_I_U_I_S_I_U_E", answer: btoa("COMPETENCELINGUISTIQUE") }
+        ]},
+        "EXP007": { code: "EXP007", niveau: "expert", theme: "Astrophysique", rounds: [
+            { word: "P_U_S_A_S_E_L_I_R_E", answer: btoa("PULSARSTELLAIRE") },
+            { word: "S_P_E_N_O_V_A_S_E_L_I_R_E", answer: btoa("SUPERNOVASTELLAIRE") },
+            { word: "N_C_E_O_S_E_L_L_I_R_E", answer: btoa("NUCLEOSTELAIRE") },
+            { word: "F_S_O_N_S_E_L_I_R_E", answer: btoa("FUSIONSTELLAIRE") },
+            { word: "I_S_T_B_I_I_A_Y", answer: btoa("INFRAROUGE") }
+        ]},
+        "EXP008": { code: "EXP008", niveau: "expert", theme: "Théâtre", rounds: [
+            { word: "V_E_I_L_E_S_E", answer: btoa("VIEILLESSE") },
+            { word: "A_S_U_D_I_A_B_D_L_A_D", answer: btoa("ABSURDE") },
+            { word: "E_T_A_E_M_E_T", answer: btoa("ETRANGEMENT") },
+            { word: "A_I_A_I_O_", answer: btoa("ALIENATION") },
+            { word: "I_C_M_U_I_C_B_L_T_", answer: btoa("INCOMMUNICABILITE") }
+        ]},
+        "EXP009": { code: "EXP009", niveau: "expert", theme: "Biologie", rounds: [
+            { word: "B_O_O_I_S_N_E_I_U_E", answer: btoa("BIOLOGIESYNTHETIQUE") },
+            { word: "C_N_T_C_I_O_G_E_I_U_E", answer: btoa("CONSTRUCTION") },
+            { word: "M_D_F_C_I_O_G_E_I_U_E", answer: btoa("MODIFICATION") },
+            { word: "I_E_I_E_E_B_O_E_C_L_O_I_E", answer: btoa("INGENIERIEBIOTECHNOLOGIE") },
+            { word: "C_I_E_C_E", answer: btoa("CRISPR") }
+        ]},
+        "EXP010": { code: "EXP010", niveau: "expert", theme: "Herméneutique", rounds: [
+            { word: "H_R_E_E_U_I_Q_U_E_E_X_U_E_L_E", answer: btoa("HERMENEUTIQUEEXTUELLE") },
+            { word: "E_E_G_S_E", answer: btoa("EXEGESE") },
+            { word: "S_M_O_I_U_E_E_X_U_E_L_E", answer: btoa("SEMIOTIQUE") },
+            { word: "I_E_P_E_A_I_O_E_X_U_E_L_L_E", answer: btoa("INTERPRETATION") },
+            { word: "P_I_E_O_I_E_E_O_E", answer: btoa("PHILOLOGIE") }
+        ]},
+        "EXP011": { code: "EXP011", niveau: "expert", theme: "Quantique", rounds: [
+            { word: "S_P_E_O_I_I_O_Q_A_I_U_E", answer: btoa("SUPERPOSITIONQUANTIQUE") },
+            { word: "E_A_E_E_O_Q_A_I_U_E", answer: btoa("ENTANGLEMENT") },
+            { word: "D_A_I_O_O_D_A_L_E", answer: btoa("DUALISME") },
+            { word: "P_I_I_D_I_C_E_U_D_E", answer: btoa("PRINCIPE") },
+            { word: "F_C_I_D_O_Q_A_I_U_E", answer: btoa("FONCTION") }
+        ]},
+        "EXP012": { code: "EXP012", niveau: "expert", theme: "Mycologie", rounds: [
+            { word: "M_C_O_O_I_E_S_E_C_I_I_E", answer: btoa("MYCOLOGIESPECIALISEE") },
+            { word: "C_R_Y_E_O_I_E_H_E", answer: btoa("CORDYCEPS") },
+            { word: "P_Y_O_O_I_E_E_R_I_O_E", answer: btoa("PHYTOTOXINE") },
+            { word: "E_O_E_M_C_E_H_Z_O_E_E", answer: btoa("ENDOSPHERE") },
+            { word: "B_O_O_I_E_M_C_E_B_I_E", answer: btoa("BIOTROPHIE") }
+        ]},
+        "EXP013": { code: "EXP013", niveau: "expert", theme: "Entomologie", rounds: [
+            { word: "E_O_O_O_I_E_C_M_O_E_A_E", answer: btoa("ENTOMOLOGIECOMPORTEMENTALE") },
+            { word: "P_E_O_O_E_E_X_E_E_L_E_E", answer: btoa("PHEROMONES") },
+            { word: "C_M_U_I_A_I_I_I_E_C_E", answer: btoa("COMMUNICATION") },
+            { word: "A_A_A_A_I_S_I_E_A_I_E", answer: btoa("ANADAPTIVE") },
+            { word: "S_C_A_I_E_I_A_I_E", answer: btoa("SOCIALITE") }
+        ]},
+        "EXP014": { code: "EXP014", niveau: "expert", theme: "Cryptographie", rounds: [
+            { word: "C_Y_O_A_I_E_Q_A_I_U_E", answer: btoa("CRYPTOGRAPHIE") },
+            { word: "D_I_I_U_I_O_Q_A_I_U_E", answer: btoa("DISTRIBUTION") },
+            { word: "E_C_Y_A_E_Q_A_I_U_E", answer: btoa("ENCRYPTAGE") },
+            { word: "D_C_Y_A_E_Q_A_I_U_E", answer: btoa("DECRYPTAGE") },
+            { word: "P_O_O_C_O_K_D_", answer: btoa("PROTOCOL") }
+        ]},
+        "EXP015": { code: "EXP015", niveau: "expert", theme: "Rhétorique", rounds: [
+            { word: "P_I_O_A_I_O_", answer: btoa("PERIORATION") },
+            { word: "C_M_M_O_A_I_O_", answer: btoa("COMMEMORATION") },
+            { word: "D_I_E_A_I_O_D_M_O_C_O", answer: btoa("DELIBERATIF") },
+            { word: "E_I_I_I_O_C_J_O_C_E", answer: btoa("EPIDICTIQUE") },
+            { word: "J_D_I_I_E", answer: btoa("JUDICIAIRE") }
+        ]},
+        "EXP016": { code: "EXP016", niveau: "expert", theme: "Biophysique", rounds: [
+            { word: "B_O_I_U_E_M_E_A_I_E", answer: btoa("BIOPHYSIQUE") },
+            { word: "B_O_U_E_M_E_A_I_E", answer: btoa("BICOUCHEMEMBRANAIRE") },
+            { word: "P_O_I_E_M_E_A_I_E", answer: btoa("PROTEINE") },
+            { word: "T_A_O_M_E_A_I_E", answer: btoa("TRANSPORT") },
+            { word: "F_U_I_E_M_E_A_I_E", answer: btoa("FLUIDITE") }
+        ]},
+        "EXP017": { code: "EXP017", niveau: "expert", theme: "Théologie", rounds: [
+            { word: "E_C_A_O_O_I_E", answer: btoa("ESCHATOLOGIE") },
+            { word: "T_E_O_E_O_O_I_E", answer: btoa("THEOSIS") },
+            { word: "M_I_I_E_E_O_O_I_E", answer: btoa("MYSTICISME") },
+            { word: "C_E_A_I_I_E_O_E", answer: btoa("CONTEMPLATIVISME") },
+            { word: "T_E_O_O_I_E", answer: btoa("THEOLOGIE") }
+        ]},
+        "EXP018": { code: "EXP018", niveau: "expert", theme: "Lexicomorphologie", rounds: [
+            { word: "D_I_A_I_O_O_O_I_U_E", answer: btoa("DERIVATION") },
+            { word: "C_O_O_I_I_O_O_O_I_U_E", answer: btoa("COMPOSITION") },
+            { word: "A_L_O_E_A_I_O_", answer: btoa("AGGLOMERATION") },
+            { word: "R_D_P_I_A_I_O_O_O_I_U_E", answer: btoa("REDUPLICATION") },
+            { word: "B_E_I_O_O_O_I_U_E", answer: btoa("BLENDING") }
+        ]},
+        "EXP019": { code: "EXP019", niveau: "expert", theme: "Paléontologie", rounds: [
+            { word: "P_E_O_O_I_E_O_E_U_I_R_E", answer: btoa("PALEONTOLOGIE") },
+            { word: "E_A_I_A_O_O_E_U_I_R_E", answer: btoa("ANCIENL") },
+            { word: "E_A_I_A_O_O_E_U_I_R_E", answer: btoa("EXAMINATION") },
+            { word: "S_U_E_O_A_A_I_E_N", answer: btoa("SEQUENCE") },
+            { word: "R_O_I_I_O_O_E_U_I_R_E", answer: btoa("RECONSTRUCTION") }
+        ]},
+        "EXP020": { code: "EXP020", niveau: "expert", theme: "Phénoménologie", rounds: [
+            { word: "E_I_E_I_A_I_S_E", answer: btoa("EXISTENTIALISME") },
+            { word: "A_A_O_N_E", answer: btoa("ABANDON") },
+            { word: "A_O_I_E", answer: btoa("ANGOISSE") },
+            { word: "M_A_I_O_I_E_O_I", answer: btoa("MAUVAISEFOI") },
+            { word: "L_E_C_I_E_E_I_E_I_A_L_E", answer: btoa("LIBERTECHOIX") }
+        ]},
+        "EXP021": { code: "EXP021", niveau: "expert", theme: "Géomorphologie", rounds: [
+            { word: "M_O_I_U_E", answer: btoa("GEOMORPHOLOGIE") },
+            { word: "H_O_O_I_E_U_I_L_E", answer: btoa("HYDROLOGIE") },
+            { word: "E_O_I_U_E_U_I_L_E", answer: btoa("EROSION") },
+            { word: "T_A_O_U_I_L", answer: btoa("TRANSPORT") },
+            { word: "S_I_E_O_O_I_E_U_I_L_E", answer: btoa("SEDIMENTOLOGIE") }
+        ]},
+        "EXP022": { code: "EXP022", niveau: "expert", theme: "Immunologie", rounds: [
+            { word: "I_U_O_O_I_E_A_A_I_A_E", answer: btoa("IMMUNOLOGIE") },
+            { word: "A_I_E_E_E_A_O_", answer: btoa("ANTIGENEPRESENTATION") },
+            { word: "C_L_U_A_E_A_E", answer: btoa("CELLULAIRE") },
+            { word: "M_O_E_I_U_E", answer: btoa("MEMOIRE") },
+            { word: "T_E_A_C_I_U_E", answer: btoa("TOLERANCE") }
+        ]},
+        "EXP023": { code: "EXP023", niveau: "expert", theme: "Acoustique", rounds: [
+            { word: "A_O_I_U_E_A_A_I_E", answer: btoa("ACOUSTIQUE") },
+            { word: "E_E_E_A_I_O_A_A_I_E", answer: btoa("REVERBERATIONS") },
+            { word: "A_O_O_I_O_O_E", answer: btoa("ABSORPTION") },
+            { word: "I_O_A_I_O_A_O_I_U_E", answer: btoa("ISOLATION") },
+            { word: "D_A_A_I_O_O_E", answer: btoa("DIFFRACTION") }
+        ]},
+        "EXP024": { code: "EXP024", niveau: "expert", theme: "Épigénétique", rounds: [
+            { word: "É_I_É_É_I_U_E_O_E_U_I_R_E", answer: btoa("EPIGENETIQUE") },
+            { word: "M_E_A_I_O_O_A", answer: btoa("METHYLATION") },
+            { word: "A_E_A_I_O_", answer: btoa("ACETYLATION") },
+            { word: "I_O_E_I_O_O_I_U_E", answer: btoa("CHROMATINREMODELING") },
+            { word: "O_I_U_E", answer: btoa("EPIGENIQUE") }
+        ]},
+        "EXP025": { code: "EXP025", niveau: "expert", theme: "Logique", rounds: [
+            { word: "L_O_I_U_E_O_A_E_E_E_O_E_L_E", answer: btoa("LOGIQUEMODALE") },
+            { word: "O_A_I_E", answer: btoa("MODALITE") },
+            { word: "E_O_A_I_E", answer: btoa("TEMPORALITE") },
+            { word: "O_I_I_E_O_A_E", answer: btoa("POSSIBILITE") },
+            { word: "N_E_I_E", answer: btoa("NECESSITE") }
+        ]}
+    };
+    
+    // ==========================================
+    // VARIABLES D'ÉTAT
+    // ==========================================
+    let currentGame = null;
+    let currentRound = 0;
+    let letterIndex = 0;
+    let animationInterval = null;
+    let isPaused = false;
+    let playerScore = 0;
+    let currentGameCode = "";
+    let playerGameCode = "";
+    let playerRound = 0;
+    let answerHistory = [];
+    
+    const defaultConfig = {
+        main_title: "Devinez le Mot",
+        letter_delay_label: "1000"
+    };
+    
+    let config = { ...defaultConfig };
+    
+    // Initialisation SDK
+    if (window.elementSdk) {
+        window.elementSdk.init({
+            defaultConfig: defaultConfig,
+            onConfigChange: async (newConfig) => {
+                config = { ...defaultConfig, ...newConfig };
+                applyConfig();
+            },
+            mapToCapabilities: (config) => ({
+                recolorables: [],
+                borderables: [],
+                fontEditable: undefined,
+                fontSizeable: undefined
+            }),
+            mapToEditPanelValues: (config) => new Map([
+                ["main_title", config.main_title || defaultConfig.main_title],
+                ["letter_delay_label", config.letter_delay_label || defaultConfig.letter_delay_label]
+            ])
+        });
+    }
+    
+    function applyConfig() {
+        const titleEl = document.getElementById('main-title');
+        if (titleEl) {
+            titleEl.innerHTML = `🎯 ${config.main_title || defaultConfig.main_title}`;
+        }
+        updateDifficultyBadges();
+    }
+    
+    // ==========================================
+    // GESTION DU NIVEAU - CORRECTION MAJEURE
+    // ==========================================
+    function selectDifficulty(level) {
+        selectedDifficulty = level;
+        
+        // Mise à jour visuelle
+        document.querySelectorAll('[id^="btn-difficulty-"]').forEach(btn => {
+            btn.classList.remove('selected');
+        });
+        const selectedBtn = document.getElementById(`btn-difficulty-${level}`);
+        if (selectedBtn) {
+            selectedBtn.classList.add('selected');
+        }
+        
+        // IMPORTANT: Force l'activation des boutons
+        const adminBtn = document.getElementById('btn-admin');
+        const playerBtn = document.getElementById('btn-player');
+        
+        if (adminBtn) {
+            adminBtn.disabled = false;
+            adminBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
+        }
+        if (playerBtn) {
+            playerBtn.disabled = false;
+            playerBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
+        }
+        
+        // Message
+        const diffNames = { facile: 'Facile', moyen: 'Moyen', difficile: 'Difficile', expert: 'Expert' };
+        document.getElementById('difficulty-info').innerHTML = 
+            `✅ Niveau <strong>${diffNames[level]}</strong> sélectionné !`;
+    }
+    
+    function getGamesByDifficulty(difficulty) {
+        return Object.keys(GAME_DATA).filter(code => GAME_DATA[code].niveau === difficulty);
+    }
+    
+    function updateDifficultyBadges() {
+        if (!selectedDifficulty) return;
+        const diffInfo = {
+            facile: { emoji: '🌱', label: 'Facile' },
+            moyen: { emoji: '🌳', label: 'Moyen' },
+            difficile: { emoji: '🔥', label: 'Difficile' },
+            expert: { emoji: '⭐', label: 'Expert' }
+        };
+        const info = diffInfo[selectedDifficulty];
+        const badge = `<span class="difficulty-badge difficulty-${selectedDifficulty}">${info.emoji} ${info.label}</span>`;
+        
+        const adminBadge = document.getElementById('admin-difficulty-badge');
+        const playerBadge = document.getElementById('player-difficulty-badge');
+        if (adminBadge) adminBadge.innerHTML = badge;
+        if (playerBadge) playerBadge.innerHTML = badge;
+    }
+    
+    // ==========================================
+    // NAVIGATION
+    // ==========================================
+    function showSection(sectionName) {
+        ['home', 'admin', 'player', 'end'].forEach(s => {
+            const el = document.getElementById(`${s}-section`);
+            if (el) el.classList.add('hidden');
+        });
+        const target = document.getElementById(`${sectionName}-section`);
+        if (target) target.classList.remove('hidden');
+        if (sectionName === 'home') resetGame();
+    }
+    
+    function backToHome() { showSection('home'); }
+    
+    function goToAdmin() {
+        if (!selectedDifficulty) return;
+        showSection('admin');
+        document.getElementById('admin-setup').classList.remove('hidden');
+        document.getElementById('admin-game').classList.add('hidden');
+        updateDifficultyBadges();
+    }
+    
+    function goToPlayer() {
+        if (!selectedDifficulty) return;
+        showSection('player');
+        document.getElementById('player-join').classList.remove('hidden');
+        document.getElementById('player-game').classList.add('hidden');
+        document.getElementById('code-error').classList.add('hidden');
+        document.getElementById('code-input').value = '';
+        updateDifficultyBadges();
+    }
+    
+    // ==========================================
+    // MODE ADMIN
+    // ==========================================
+    function generateGameCode() {
+        const validCodes = getGamesByDifficulty(selectedDifficulty);
+        if (validCodes.length === 0) {
+            alert("Aucune partie pour ce niveau");
+            return;
+        }
+        currentGameCode = validCodes[Math.floor(Math.random() * validCodes.length)];
+        currentGame = GAME_DATA[currentGameCode];
+        currentRound = 0;
+        playerScore = 0;
+        
+        document.getElementById('game-code-display').textContent = currentGameCode;
+        document.getElementById('admin-level-display').textContent = selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1);
+        document.getElementById('round-display').textContent = '1/5';
+        document.getElementById('score-display').textContent = '0';
+        document.getElementById('word-display').innerHTML = '';
+        document.getElementById('timer-progress').style.width = '0%';
+        
+        document.getElementById('admin-setup').classList.add('hidden');
+        document.getElementById('admin-game').classList.remove('hidden');
+        document.getElementById('answer-reveal').classList.add('hidden');
+    }
+    
+    function startWordReveal() {
+        if (!currentGame || isPaused) isPaused = false;
+        if (letterIndex === 0) document.getElementById('word-display').innerHTML = '';
+        
+        const word = currentGame.rounds[currentRound].word;
+        const delay = parseInt(config.letter_delay_label) || 1000;
+        
+        document.getElementById('btn-start').disabled = true;
+        document.getElementById('btn-pause').disabled = false;
+        
+        animationInterval = setInterval(() => {
+            if (letterIndex < word.length) {
+                const span = document.createElement('span');
+                span.className = 'inline-flex items-center justify-center w-12 h-14 md:w-14 md:h-16 text-2xl md:text-3xl font-bold rounded-lg letter-animate ' + 
+                    (word[letterIndex] === '_' ? 'bg-white/20 text-indigo-300' : 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg');
+                span.textContent = word[letterIndex];
+                document.getElementById('word-display').appendChild(span);
+                letterIndex++;
+                document.getElementById('timer-progress').style.width = (letterIndex / word.length * 100) + '%';
+            } else {
+                clearInterval(animationInterval);
+                animationInterval = null;
+                document.getElementById('btn-start').disabled = false;
+                document.getElementById('btn-pause').disabled = true;
+            }
+        }, delay);
+    }
+    
+    function pauseWordReveal() {
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+            isPaused = true;
+            document.getElementById('btn-start').disabled = false;
+            document.getElementById('btn-pause').disabled = true;
+        }
+    }
+    
+    function nextRound() {
+        if (animationInterval) clearInterval(animationInterval);
+        currentRound++;
+        letterIndex = 0;
+        isPaused = false;
+        
+        if (currentRound >= 5) {
+            showEndGame();
+        } else {
+            document.getElementById('round-display').textContent = (currentRound + 1) + '/5';
+            document.getElementById('word-display').innerHTML = '';
+            document.getElementById('timer-progress').style.width = '0%';
+            document.getElementById('answer-reveal').classList.add('hidden');
+            document.getElementById('btn-start').disabled = false;
+            document.getElementById('btn-pause').disabled = true;
+        }
+    }
+    
+    function resetGame() {
+        if (animationInterval) clearInterval(animationInterval);
+        currentGame = null;
+        currentRound = 0;
+        letterIndex = 0;
+        isPaused = false;
+        playerScore = 0;
+        currentGameCode = "";
+        playerGameCode = "";
+        playerRound = 0;
+        answerHistory = [];
+    }
+    
+    function toggleAnswer() {
+        const el = document.getElementById('answer-reveal');
+        if (el.classList.contains('hidden')) {
+            el.textContent = `Réponse : ${atob(currentGame.rounds[currentRound].answer)}`;
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    }
+    
+    // ==========================================
+    // MODE JOUEUR
+    // ==========================================
+    function joinGame() {
+        const code = document.getElementById('code-input').value.toUpperCase().trim();
+        const error = document.getElementById('code-error');
+        
+        if (!code || !GAME_DATA[code] || GAME_DATA[code].niveau !== selectedDifficulty) {
+            error.classList.remove('hidden');
+            return;
+        }
+        
+        playerGameCode = code;
+        playerRound = 0;
+        playerScore = 0;
+        answerHistory = [];
+        
+        document.getElementById('player-level-display').textContent = selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1);
+        document.getElementById('player-round').textContent = '1/5';
+        document.getElementById('player-score').textContent = '0';
+        document.getElementById('history-list').innerHTML = '';
+        document.getElementById('answer-input').value = '';
+        document.getElementById('feedback-zone').classList.add('hidden');
+        error.classList.add('hidden');
+        
+        document.getElementById('player-join').classList.add('hidden');
+        document.getElementById('player-game').classList.remove('hidden');
+    }
+    
+    function submitAnswer() {
+        const game = GAME_DATA[playerGameCode];
+        if (!game || playerRound >= 5) return;
+        
+        const answer = document.getElementById('answer-input').value.trim();
+        if (!answer) return;
+        
+        const correct = atob(game.rounds[playerRound].answer);
+        const isCorrect = normalizeString(answer) === normalizeString(correct);
+        const points = isCorrect ? 100 : 0;
+        playerScore += points;
+        
+        document.getElementById('player-score').textContent = playerScore;
+        
+        const feedback = document.getElementById('feedback-zone');
+        feedback.classList.remove('hidden');
+        if (isCorrect) {
+            feedback.className = 'text-center p-4 rounded-xl mb-4 bg-emerald-500/20 border border-emerald-500/50';
+            document.getElementById('feedback-text').innerHTML = `✅ Bravo ! +${points} points`;
+        } else {
+            feedback.className = 'text-center p-4 rounded-xl mb-4 bg-red-500/20 border border-red-500/50';
+            document.getElementById('feedback-text').innerHTML = `❌ Raté ! ${correct}`;
+        }
+        
+        addToHistory(playerRound + 1, answer, correct, isCorrect);
+        playerRound++;
+        document.getElementById('answer-input').value = '';
+        
+        if (playerRound >= 5) {
+            setTimeout(() => {
+                document.getElementById('final-score').textContent = playerScore;
+                document.getElementById('end-message').textContent = getEndMessage(playerScore);
+                showSection('end');
+            }, 2000);
+        } else {
+            document.getElementById('player-round').textContent = (playerRound + 1) + '/5';
+        }
+    }
+    
+    function normalizeString(str) {
+        return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    }
+    
+    function addToHistory(round, playerAnswer, correctAnswer, isCorrect) {
+        const entry = document.createElement('div');
+        entry.className = `p-2 rounded-lg text-sm ${isCorrect ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`;
+        entry.innerHTML = `<span class="font-semibold">Manche ${round}:</span> ${isCorrect ? '✅' : '❌'} "${playerAnswer}" ${!isCorrect ? `<span class="text-white/60">(${correctAnswer})</span>` : ''}`;
+        document.getElementById('history-list').insertBefore(entry, document.getElementById('history-list').firstChild);
+    }
+    
+    function getEndMessage(score) {
+        if (score >= 500) return "🏆 Parfait !";
+        if (score >= 400) return "🌟 Excellent !";
+        if (score >= 300) return "👏 Très bien !";
+        if (score >= 200) return "👍 Pas mal !";
+        if (score >= 100) return "🤔 Peut mieux faire !";
+        return "💪 Retentez votre chance !";
+    }
+    
+    function showEndGame() {
+        document.getElementById('final-score').textContent = playerScore;
+        document.getElementById('end-message').textContent = getEndMessage(playerScore);
+        showSection('end');
+    }
+    
+    function leaveGame() {
+        resetGame();
+        showSection('player');
+    }
+    
+    applyConfig();
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9cd3859ec515b1ce',t:'MTc3MDk3NzI4MC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
